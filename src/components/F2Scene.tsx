@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
+import toast from 'react-hot-toast';
 import { Zone } from '../types/zone';
 import ZoneBox from './ZoneBox';
 import { DoubleStairs } from './Stairs';
@@ -9,7 +10,6 @@ import Elevator from './Elevator';
 import FireHydrant from './FireHydrant';
 import ZonePopup from './ZonePopup';
 import PathLine from './PathLine';
-import Person from './Person';
 import { getEscapePathAndAnalysis } from '../utils/api';
 import { FloorPlanData } from '../lib/firebase';
 import { usePolling } from '../hooks/usePolling';
@@ -58,16 +58,14 @@ function BuildingStructure({
   onZoneDoubleClick,
   pathPoints,
   floorPlanData,
-  currentZone,
-  zoneNameToPosition
+  currentZone
 }: { 
   zones: ZoneInfo[], 
   onZoneClick: (zoneInfo: ZoneInfo) => void,
   onZoneDoubleClick: (zoneInfo: ZoneInfo) => void,
   pathPoints: [number, number, number][],
   floorPlanData?: FloorPlanData | null,
-  currentZone?: string,
-  zoneNameToPosition?: { [key: string]: [number, number, number] }
+  currentZone?: string
 }) {
   const wallHeight = 0.7;
   const wallThickness = 0.1;
@@ -77,52 +75,7 @@ function BuildingStructure({
 
   return (
     <group>
-      {/* floorPlanData가 없을 때만 하드코딩된 벽 렌더링 */}
-      {!floorPlanData && (
-        <>
-      {/* 외벽 */}
-      <Wall position={[-buildingWidth/2 + 2.5, wallHeight / 2, 7.5]} size={[5, wallHeight, wallThickness]} />
-      <Wall position={[0, wallHeight / 2, 2.5]} size={[wallThickness, wallHeight, 10]} />
-      <Wall 
-        position={[-buildingWidth / 2, wallHeight / 2, 0]} 
-        size={[wallThickness, wallHeight, buildingDepth]} 
-      />
-      <Wall 
-        position={[0, wallHeight / 2, -buildingDepth / 2]} 
-        size={[buildingWidth, wallHeight, wallThickness]} 
-      />
-      <Wall 
-        position={[buildingWidth / 2, wallHeight / 2, -buildingDepth / 2 + rightWingLength / 2]} 
-        size={[wallThickness, wallHeight, rightWingLength]} 
-      />
-      <Wall 
-        position={[buildingWidth / 2 - rightWingLength / 2, wallHeight / 2, buildingDepth / 2 - 10]} 
-        size={[rightWingLength, wallHeight, wallThickness]} 
-      />
-
-      {/* 내부 벽 */}
-      <Wall position={[-buildingWidth/2+2, wallHeight / 2, 0]} size={[wallThickness, wallHeight, buildingDepth]} />
-      <Wall position={[-2, wallHeight / 2, 1.5]} size={[wallThickness, wallHeight, buildingDepth-3]} />
-      <Wall position={[-2, wallHeight / 2, -6.5]} size={[wallThickness, wallHeight, 2]} />
-      <Wall position={[1.5, wallHeight / 2, -4.5]} size={[buildingWidth-3, wallHeight, wallThickness]} />
-      <Wall position={[1.5, wallHeight / 2, -5.5]} size={[buildingWidth-3, wallHeight, wallThickness]} />
-      {/* 교실 구분 벽 */}
-      <Wall position={[0, wallHeight / 2, -6.5]} size={[wallThickness, wallHeight, 2]} />
-      <Wall position={[2.5, wallHeight / 2, -6.5]} size={[wallThickness, wallHeight, 2]} />
-      <Wall position={[2.5, wallHeight / 2, -3.5]} size={[wallThickness, wallHeight, 2]} />
-      <Wall position={[0, wallHeight / 2, -3.5]} size={[wallThickness, wallHeight, 2]} />
-      <Wall position={[-1, wallHeight / 2, -2.5]} size={[2, wallHeight, wallThickness]} />
-      <Wall position={[-1, wallHeight / 2, 0]} size={[2, wallHeight, wallThickness]} />
-      <Wall position={[-1, wallHeight / 2, 3.75]} size={[2, wallHeight, wallThickness]} />
-      <Wall position={[-4, wallHeight / 2, 0]} size={[2, wallHeight, wallThickness]} />
-      <Wall position={[-4, wallHeight / 2, -3]} size={[2, wallHeight, wallThickness]} />
-      <Wall position={[-4, wallHeight / 2, -4.5]} size={[2, wallHeight, wallThickness]} />
-      <Wall position={[-4, wallHeight / 2, -5.5]} size={[2, wallHeight, wallThickness]} />
-      <Wall position={[-4, wallHeight / 2, 3]} size={[2, wallHeight, wallThickness]} />
-      <Wall position={[-4, wallHeight / 2, 5.5]} size={[2, wallHeight, wallThickness]} />
-      <Wall position={[-4, wallHeight / 2, 6.5]} size={[2, wallHeight, wallThickness]} />
-        </>
-      )}
+    
 
       {/* 구역들 */}
       {zones.map((zoneInfo) => (
@@ -134,25 +87,15 @@ function BuildingStructure({
           zoneName={zoneInfo.zoneName}
           onClick={() => onZoneClick(zoneInfo)}
           onDoubleClick={() => onZoneDoubleClick(zoneInfo)}
+          isCurrentZone={currentZone === zoneInfo.zoneName}
         />
     ))}
 
       {/* 경로 표시 */}
       {pathPoints.length > 0 && <PathLine points={pathPoints} />}
 
-      {/* 유저 위치 표시 (사람 컴포넌트) */}
-      {currentZone && currentZone !== '선택 안됨' && zoneNameToPosition && zoneNameToPosition[currentZone] && (
-        <Person 
-          position={[
-            zoneNameToPosition[currentZone][0],
-            0.1, // 바닥에서 약간 위
-            zoneNameToPosition[currentZone][2]
-          ]}
-        />
-      )}
-
-      {/* floorPlanData가 있으면 그것을 사용, 없으면 하드코딩된 구조 사용 */}
-      {floorPlanData && floorPlanData.objects ? (
+      {/* floorPlanData가 있을 때만 구조물 렌더링 */}
+      {floorPlanData && floorPlanData.objects && (
         <>
           {/* 벽 */}
           {floorPlanData.objects
@@ -227,149 +170,17 @@ function BuildingStructure({
               />
             ))}
         </>
-      ) : (
-        <>
-          {/* 계단 */}
-          {/* 계단4 */}
-          <DoubleStairs
-            centerPosition={[-0.4,0,-4.25]}
-            width={0.2}
-            depth={0.5}
-            height={wallHeight}
-            stepCount={7}
-            spacing={0.2}
-          />
-          {/* 계단3 */}
-          <DoubleStairs
-            centerPosition={[-1.75,0,-2.9]}
-            width={0.2}
-            depth={0.5}
-            height={wallHeight}
-            stepCount={7}
-            spacing={0.2}
-            rotation={[0, Math.PI/2, 0]}
-          />
-          {/* 계단2 */}
-          <DoubleStairs
-            centerPosition={[-3.3,0,-5]}
-            width={0.2}
-            depth={0.5}
-            height={wallHeight}
-            stepCount={7}
-            spacing={0.2}
-            rotation={[0, -Math.PI/2, 0]}
-          />
-          {/* 계단1 */}
-          <DoubleStairs
-            centerPosition={[-3.3,0,7]}
-            width={0.2}
-            depth={0.5}
-            height={wallHeight}
-            stepCount={7}
-            spacing={0.2}
-            rotation={[0, -Math.PI/2, 0]}
-          />
-
-          {/* 소화기 */}
-          <Extinguisher
-            position={[-2.85, 0, 7.3]}
-            scale={0.4}
-            rotation={[0, 0, 0]}
-          />
-          <Extinguisher
-            position={[-2.85, 0, 4.2]}
-            scale={0.4}
-            rotation={[0, 0, 0]}
-          />
-          <Extinguisher
-            position={[-2.85, 0, 1.5]}
-            scale={0.4}
-            rotation={[0, 0, 0]}
-          />
-          <Extinguisher
-            position={[-2.85, 0, -5.5]}
-            scale={0.4}
-            rotation={[0, 0, 0]}
-          />
-          <Extinguisher
-            position={[0.2, 0, -4.65]}
-            scale={0.4}
-            rotation={[0, 0, 0]}
-          />
-          <Extinguisher
-            position={[4.85, 0, -4.65]}
-            scale={0.4}
-            rotation={[0, 0, 0]}
-          />
-
-          {/* 엘리베이터 */}
-          <Elevator
-            position={[-3.25, 0, -4.28]}
-            size={[0.42, 0.7, 0.35]}
-            rotation={[0, 0, 0]}
-          />
-          <Elevator
-            position={[-4, 0, -4.28]}
-            size={[0.42, 0.7, 0.35]}
-            rotation={[0, 0, 0]}
-          />
-          <Elevator
-            position={[-4.75, 0, -4.28]}
-            size={[0.42, 0.7, 0.35]}
-            rotation={[0, 0, 0]}
-          />
-          <Elevator
-            position={[-3.25, 0, -3.22]}
-            size={[0.42, 0.7, 0.35]}
-            rotation={[0, Math.PI, 0]}
-          />
-          <Elevator
-            position={[-4, 0, -3.22]}
-            size={[0.42, 0.7, 0.35]}
-            rotation={[0, Math.PI, 0]}
-          />
-          <Elevator
-            position={[-4.75, 0, -3.22]}
-            size={[0.42, 0.7, 0.35]}
-            rotation={[0, Math.PI, 0]}
-          />
-          <Elevator
-            position={[-4.8, 0, 6]}
-            size={[0.42, 0.7, 0.35]}
-            rotation={[0, Math.PI/2, 0]}
-          />
-
-          {/* 소화전 */}
-          <FireHydrant
-            position={[-3+wallThickness/2, 0.15, 4.5]}
-            size={[0.2, 0.4, 0.02]}
-            rotation={[0, Math.PI/2, 0]}
-          />
-          <FireHydrant
-            position={[-3+wallThickness/2, 0.15, 1.2]}
-            size={[0.2, 0.4, 0.02]}
-            rotation={[0, Math.PI/2, 0]}
-          />
-          <FireHydrant
-            position={[-3+wallThickness/2, 0.15, -4.3]}
-            size={[0.2, 0.4, 0.02]}
-            rotation={[0, Math.PI/2, 0]}
-          />
-          <FireHydrant
-            position={[1.3, 0.15, -5.5+wallThickness/2]}
-            size={[0.2, 0.4, 0.02]}
-            rotation={[0, 0, 0]}
-          />
-        </>
       )}
       
-      {/* 바닥 테두리 (ㄴ자 형태) */}
-      <lineSegments position={[0, 0.05, 0]}>
-        <edgesGeometry>
-          <boxGeometry args={[buildingWidth, 0.1, buildingDepth]} />
-        </edgesGeometry>
-        <lineBasicMaterial color="#999999" />
-      </lineSegments>
+      {/* 바닥 테두리 (floorPlanData가 있을 때만) */}
+      {floorPlanData && (
+        <lineSegments position={[0, 0.05, 0]}>
+          <edgesGeometry>
+            <boxGeometry args={[buildingWidth, 0.1, buildingDepth]} />
+          </edgesGeometry>
+          <lineBasicMaterial color="#999999" />
+        </lineSegments>
+      )}
       
     </group>
   );
@@ -392,248 +203,7 @@ export default function F2Scene({
 
   // 초기 구역 더미데이터
   const initialZones: ZoneInfo[] = [
-    // 세로 강의실 구역
-    {
-      zone: {
-        zoneId: 'zone-201',
-        fireLevel: 0,
-        smokeLevel: 0,
-        knife: false,
-        extinguisher: true,
-        stair: false,
-        people_cnt: 15
-      },
-      position: [-1, wallHeight/2, -1.25],
-      size: [2-wallThickness, wallHeight, 2.5-wallThickness],
-      zoneName: '201호'
-    },
-    {
-      zone: {
-        zoneId: 'zone-202',
-        fireLevel: 0.2,
-        smokeLevel: 0.1,
-        knife: false,
-        extinguisher: false,
-        stair: false,
-        people_cnt: 25
-      },
-      position: [-1, wallHeight/2, 1.875],
-      size: [2-wallThickness, wallHeight, 3.75-wallThickness],
-      zoneName: '202호'
-    },
-    {
-      zone: {
-        zoneId: 'zone-203',
-        fireLevel: 0,
-        smokeLevel: 0,
-        knife: false,
-        extinguisher: true,
-        stair: false,
-        people_cnt: 10
-      },
-      position: [-1, wallHeight/2, 5.625],
-      size: [2-wallThickness, wallHeight, 3.75-wallThickness],
-      zoneName: '203호'
-    },
-    {
-      zone: {
-        zoneId: 'zone-204',
-        fireLevel: 0,
-        smokeLevel: 0,
-        knife: false,
-        extinguisher: false,
-        stair: false,
-        people_cnt: 8
-      },
-      position: [-4, wallHeight/2, 4.25],
-      size: [2-wallThickness, wallHeight, 2.5-wallThickness],
-      zoneName: '204호'
-    },
-    {
-      zone: {
-        zoneId: 'zone-205',
-        fireLevel: 0.5,
-        smokeLevel: 0.3,
-        knife: false,
-        extinguisher: true,
-        stair: false,
-        people_cnt: 30
-      },
-      position: [-4, wallHeight/2, 1.5],
-      size: [2-wallThickness, wallHeight, 3-wallThickness],
-      zoneName: '205호'
-    },
-    {
-      zone: {
-        zoneId: 'zone-206',
-        fireLevel: 0,
-        smokeLevel: 0,
-        knife: true,
-        extinguisher: false,
-        stair: false,
-        people_cnt: 5
-      },
-      position: [-4, wallHeight/2, -1.5],
-      size: [2-wallThickness, wallHeight, 3-wallThickness],
-      zoneName: '206호'
-    },
-    // 가로 강의실 구역
-    {
-      zone: {
-        zoneId: 'zone-211',
-        fireLevel: 0,
-        smokeLevel: 0,
-        knife: false,
-        extinguisher: true,
-        stair: false,
-        people_cnt: 12
-      },
-      position: [1.25, wallHeight/2, -3.5],
-      size: [2.5-wallThickness, wallHeight, 2-wallThickness],
-      zoneName: '211호'
-    },
-    {
-      zone: {
-        zoneId: 'zone-208',
-        fireLevel: 0,
-        smokeLevel: 0,
-        knife: false,
-        extinguisher: false,
-        stair: false,
-        people_cnt: 18
-      },
-      position: [1.25, wallHeight/2, -6.5],
-      size: [2.5-wallThickness, wallHeight, 2-wallThickness],
-      zoneName: '208호'
-    },
-    {
-      zone: {
-        zoneId: 'zone-209',
-        fireLevel: 0.1,
-        smokeLevel: 0.05,
-        knife: false,
-        extinguisher: true,
-        stair: false,
-        people_cnt: 22
-      },
-      position: [3.75, wallHeight/2, -6.5],
-      size: [2.5-wallThickness, wallHeight, 2-wallThickness],
-      zoneName: '209호'
-    },
-    {
-      zone: {
-        zoneId: 'zone-210',
-        fireLevel: 0,
-        smokeLevel: 0,
-        knife: false,
-        extinguisher: true,
-        stair: false,
-        people_cnt: 6
-      },
-      position: [3.75, wallHeight/2, -3.5],
-      size: [2.5-wallThickness, wallHeight, 2-wallThickness],
-      zoneName: '210호'
-    },
-    {
-      zone: {
-        zoneId: 'zone-207',
-        fireLevel: 0,
-        smokeLevel: 0,
-        knife: false,
-        extinguisher: false,
-        stair: false,
-        people_cnt: 3
-      },
-      position: [-1, wallHeight/2, -6.5],
-      size: [2-wallThickness, wallHeight, 2-wallThickness],
-      zoneName: '207호'
-    },
-    // 세로복도
-    {
-      zone: {
-        zoneId: 'zone-hallway-1',
-        fireLevel: 0,
-        smokeLevel: 0,
-        knife: false,
-        extinguisher: false,
-        stair: false,
-        people_cnt: 5
-      },
-      position: [-2.5, wallHeight/2, 5.625-wallThickness/2],
-      size: [1-wallThickness, wallHeight, 3.75],
-      zoneName: '복도1'
-    },
-    {
-      zone: {
-        zoneId: 'zone-hallway-2',
-        fireLevel: 1,
-        smokeLevel: 0,
-        knife: false,
-        extinguisher: false,
-        stair: false,
-        people_cnt: 8
-      },
-      position: [-2.5, wallHeight/2, 1.875-wallThickness/2],
-      size: [1-wallThickness, wallHeight, 3.75],
-      zoneName: '복도2'
-    },
-    {
-      zone: {
-        zoneId: 'zone-hallway-3',
-        fireLevel: 0,
-        smokeLevel: 0,
-        knife: false,
-        extinguisher: false,
-        stair: false,
-        people_cnt: 12
-      },
-      position: [-2.5, wallHeight/2, -1.875-wallThickness/2],
-      size: [1-wallThickness, wallHeight, 3.75],
-      zoneName: '복도3'
-    },
-    {
-      zone: {
-        zoneId: 'zone-hallway-4',
-        fireLevel: 0,
-        smokeLevel: 0,
-        knife: false,
-        extinguisher: false,
-        stair: false,
-        people_cnt: 15
-      },
-      position: [-2.5, wallHeight/2, -5.625],
-      size: [1-wallThickness, wallHeight, 3.75-wallThickness],
-      zoneName: '복도4'
-    },
-    // 가로복도
-    {
-      zone: {
-        zoneId: 'zone-hallway-5',
-        fireLevel: 0,
-        smokeLevel: 0,
-        knife: false,
-        extinguisher: false,
-        stair: false,
-        people_cnt: 10
-      },
-      position: [-0.25, wallHeight/2, -5],
-      size: [3.7-wallThickness, wallHeight, 1-wallThickness],
-      zoneName: '복도5'
-    },
-    {
-      zone: {
-        zoneId: 'zone-hallway-6',
-        fireLevel: 0,
-        smokeLevel: 0,
-        knife: false,
-        extinguisher: false,
-        stair: false,
-        people_cnt: 7
-      },
-      position: [3.25, wallHeight/2, -5],
-      size: [3.5-wallThickness, wallHeight, 1-wallThickness],
-      zoneName: '복도6'
-    }
+    
   ];
 
   // floorPlanData에서 zones 추출
@@ -663,6 +233,8 @@ export default function F2Scene({
 
   const [selectedZone, setSelectedZone] = useState<ZoneInfo | null>(null);
   const [pathPoints, setPathPoints] = useState<[number, number, number][]>([]);
+  const hasPathRef = useRef<boolean>(false); // 경로 존재 여부 추적
+  const waitingToastIdRef = useRef<string | null>(null); // 대기 상태 Toast ID 추적
 
   // floorPlanData가 변경되면 zones 업데이트
   useEffect(() => {
@@ -738,7 +310,12 @@ export default function F2Scene({
       }
       
       // 2. 대피 경로 표시 (escape_path)
-      if (result && result.escape_path && result.escape_path.path && Array.isArray(result.escape_path.path)) {
+      // path가 존재하고 길이가 1보다 크면 실제 경로가 있는 것 (현재 위치만 있으면 경로 없음)
+      const hasValidPath = result?.escape_path?.path && 
+                           Array.isArray(result.escape_path.path) && 
+                           result.escape_path.path.length > 1;
+      
+      if (hasValidPath) {
         const points: [number, number, number][] = result.escape_path.path
           .map((zoneName: string) => {
             const pos = zoneNameToPosition[zoneName];
@@ -752,8 +329,50 @@ export default function F2Scene({
         
         console.log('경로 좌표:', points);
         setPathPoints(points);
+        
+        // 경로가 생겼을 때
+        if (!hasPathRef.current) {
+          hasPathRef.current = true;
+          // 대기 상태 Toast가 있으면 제거
+          if (waitingToastIdRef.current) {
+            toast.dismiss(waitingToastIdRef.current);
+            waitingToastIdRef.current = null;
+          }
+        }
       } else {
+        // 경로가 없을 때
         setPathPoints([]);
+        
+        // 이전에 경로가 있었는데 사라진 경우, 또는 처음 경로가 없는 경우
+        if (hasPathRef.current || waitingToastIdRef.current === null) {
+          hasPathRef.current = false;
+          
+          // 이미 대기 상태 Toast가 있으면 중복 생성하지 않음
+          if (!waitingToastIdRef.current) {
+            const toastId = toast(
+              <div className="flex items-center gap-3">
+                <div className="text-2xl">⚠️</div>
+                <div>
+                  <div className="font-semibold text-gray-800">대피 경로를 찾을 수 없습니다</div>
+                  <div className="text-sm text-gray-600">현재 위치에서 안전한 대피 경로가 없습니다</div>
+                </div>
+              </div>,
+              {
+                duration: Infinity, // 무한 지속 (경로가 생기면 제거)
+                id: 'no-path',
+                style: {
+                  background: '#fef3c7',
+                  color: '#1f2937',
+                  padding: '16px',
+                  borderRadius: '12px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  border: '1px solid #fbbf24',
+                },
+              }
+            );
+            waitingToastIdRef.current = toastId as string;
+          }
+        }
       }
     } catch (error) {
       // 에러는 이미 콘솔에 출력됨
@@ -815,7 +434,6 @@ export default function F2Scene({
           pathPoints={pathPoints}
           floorPlanData={floorPlanData}
           currentZone={currentZone}
-          zoneNameToPosition={zoneNameToPosition}
         />
         
         {/* 카메라 컨트롤 */}
