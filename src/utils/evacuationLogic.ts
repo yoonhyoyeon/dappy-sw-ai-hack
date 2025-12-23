@@ -25,14 +25,12 @@ export function calculateDangerLevel(zone: Zone): number {
   const weights = {
     fire: 0.4,
     smoke: 0.3,
-    blocked: 0.2,
-    knife: 0.1,
+    knife: 0.3,
   };
 
   let dangerLevel = 0;
   dangerLevel += zone.fireLevel * weights.fire;
   dangerLevel += zone.smokeLevel * weights.smoke;
-  dangerLevel += zone.blockedLevel * weights.blocked;
   dangerLevel += zone.knife ? weights.knife : 0;
 
   return Math.min(dangerLevel, 1.0);
@@ -43,10 +41,6 @@ export function calculateDangerLevel(zone: Zone): number {
  */
 export function getZoneColor(zone: Zone): string {
   const dangerLevel = calculateDangerLevel(zone);
-
-  if (zone.blockedLevel > 0.5) {
-    return '#6b7280'; // 회색 - 차단
-  }
 
   if (zone.knife) {
     return '#991b1b'; // 진한 빨강 - 칼부림

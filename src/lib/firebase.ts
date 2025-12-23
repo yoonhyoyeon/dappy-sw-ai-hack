@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, get, child } from 'firebase/database';
+import { getDatabase, ref, set, get, child, Database } from 'firebase/database';
 
 // Firebase 설정
 const firebaseConfig = {
@@ -13,8 +13,8 @@ const firebaseConfig = {
 };
 
 // Firebase 초기화 (설정이 없으면 에러)
-let app;
-let database;
+let app: ReturnType<typeof initializeApp> | undefined;
+let database: Database | undefined;
 
 try {
   // Firebase 설정 확인
@@ -46,6 +46,9 @@ export interface FloorPlanData {
  * 도면이 이미 존재하는지 확인
  */
 export async function checkFloorPlanExists(buildingName: string, floor: number): Promise<boolean> {
+  if (!database) {
+    throw new Error('Firebase가 초기화되지 않았습니다.');
+  }
   try {
     const dbRef = ref(database);
     const snapshot = await get(child(dbRef, `buildings/${buildingName}/${floor}`));
@@ -79,6 +82,9 @@ export async function saveFloorPlan(
       updatedAt: new Date().toISOString(),
     };
 
+    if (!database) {
+      throw new Error('Firebase가 초기화되지 않았습니다.');
+    }
     await set(ref(database, `buildings/${buildingName}/${floor}`), floorPlanData);
     console.log('도면 저장 완료:', floorPlanData);
   } catch (error) {
@@ -91,6 +97,9 @@ export async function saveFloorPlan(
  * 도면 불러오기
  */
 export async function loadFloorPlan(buildingName: string, floor: number): Promise<FloorPlanData | null> {
+  if (!database) {
+    throw new Error('Firebase가 초기화되지 않았습니다.');
+  }
   try {
     const dbRef = ref(database);
     const snapshot = await get(child(dbRef, `buildings/${buildingName}/${floor}`));
@@ -110,6 +119,9 @@ export async function loadFloorPlan(buildingName: string, floor: number): Promis
  * 특정 건물의 모든 층 목록 가져오기
  */
 export async function getBuildingFloors(buildingName: string): Promise<number[]> {
+  if (!database) {
+    throw new Error('Firebase가 초기화되지 않았습니다.');
+  }
   try {
     const dbRef = ref(database);
     const snapshot = await get(child(dbRef, `buildings/${buildingName}`));
@@ -130,6 +142,9 @@ export async function getBuildingFloors(buildingName: string): Promise<number[]>
  * 모든 건물 목록 가져오기
  */
 export async function getAllBuildings(): Promise<string[]> {
+  if (!database) {
+    throw new Error('Firebase가 초기화되지 않았습니다.');
+  }
   try {
     const dbRef = ref(database);
     const snapshot = await get(child(dbRef, 'buildings'));
@@ -162,6 +177,9 @@ export async function updateFloorPlan(
       updatedAt: new Date().toISOString(),
     };
 
+    if (!database) {
+      throw new Error('Firebase가 초기화되지 않았습니다.');
+    }
     await set(ref(database, `buildings/${buildingName}/${floor}`), floorPlanData);
     console.log('도면 업데이트 완료:', floorPlanData);
   } catch (error) {
