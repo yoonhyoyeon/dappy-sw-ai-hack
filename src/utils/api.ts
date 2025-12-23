@@ -59,17 +59,13 @@ export async function fetchEvacuationPath(
  * }
  */
 export async function getEscapePathAndAnalysis(currentLocation: string) {
-  // 프로덕션에서는 Vercel Function 프록시 사용, 개발 환경에서는 직접 URL 사용
-  const API_BASE_URL = import.meta.env.PROD 
-    ? '/api/get-escape-path' 
-    : 'http://43.202.81.16:3000/get-escape-path';
   
   try {
     console.log('=== 구역 상태 및 대피 경로 API 호출 ===');
-    console.log('요청 URL:', API_BASE_URL);
+    console.log('요청 URL:', `/get-escape-path`);
     console.log('요청 Body:', { current_location: currentLocation });
     
-    const response = await fetch(API_BASE_URL, {
+    const response = await fetch(`/get-escape-path`, {
       method: 'POST',
       mode: 'cors',
       headers: {
