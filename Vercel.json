@@ -3,6 +3,10 @@
     {
       "source": "/(.*)",
       "destination": "/index.html"
+    },
+    {
+      "source": "/get-escape-path",
+      "destination": "http://43.202.81.16:3000/get-escape-path"
     }
   ]
 }
