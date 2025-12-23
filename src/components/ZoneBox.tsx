@@ -2,6 +2,7 @@ import { useMemo, useRef } from 'react';
 import { Text } from '@react-three/drei';
 import { Zone } from '../types/zone';
 import { ThreeEvent } from '@react-three/fiber';
+import Person from './Person';
 
 interface ZoneBoxProps {
   zone: Zone;
@@ -10,6 +11,7 @@ interface ZoneBoxProps {
   zoneName?: string;
   onClick?: () => void;
   onDoubleClick?: () => void;
+  isCurrentZone?: boolean;
 }
 
 /**
@@ -19,7 +21,7 @@ interface ZoneBoxProps {
  * - 혼잡도 표시
  * - 구역 이름 표시
  */
-export default function ZoneBox({ zone, position, size, zoneName, onClick, onDoubleClick }: ZoneBoxProps) {
+export default function ZoneBox({ zone, position, size, zoneName, onClick, onDoubleClick, isCurrentZone = false }: ZoneBoxProps) {
   const clickTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const clickCountRef = useRef<number>(0);
 
@@ -129,6 +131,11 @@ export default function ZoneBox({ zone, position, size, zoneName, onClick, onDou
         />
       </mesh>
 
+      {/* 현재 구역일 때 빨간색 다이아몬드 표시 (박스 안 중앙) */}
+      {isCurrentZone && (
+        <Person position={[0, 0, 0]} />
+      )}
+
       {/* 혼잡도 표시 구 (박스 위 가운데) - 0명도 표시 */}
       <group position={[0, height / 2 + 0.2, 0]}>
         <mesh>
@@ -152,7 +159,7 @@ export default function ZoneBox({ zone, position, size, zoneName, onClick, onDou
         <Text
           position={[0, height / 2 + 0.4, 0]}
           fontSize={0.2}
-          color="#000000"
+          color={isCurrentZone ? "#ff0000" : "#000000"}
           anchorX="center"
           anchorY="middle"
           outlineWidth={0.02}
