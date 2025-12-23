@@ -67,11 +67,8 @@ function BuildingStructure({
   floorPlanData?: FloorPlanData | null,
   currentZone?: string
 }) {
-  const wallHeight = 0.7;
-  const wallThickness = 0.1;
   const buildingWidth = 10;  // 가로 길이
   const buildingDepth = 15;  // 세로 길이
-  const rightWingLength = 5; // 오른쪽 날개 길이
 
   return (
     <group>
@@ -198,9 +195,6 @@ export default function F2Scene({
   floorPlanData?: FloorPlanData | null;
   currentZone?: string;
 }) {
-  const wallHeight = 0.7;
-  const wallThickness = 0.1;
-
   // 초기 구역 더미데이터
   const initialZones: ZoneInfo[] = [
     
