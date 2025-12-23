@@ -59,13 +59,13 @@ export async function fetchEvacuationPath(
  * }
  */
 export async function getEscapePathAndAnalysis(currentLocation: string) {
-  
+  const AI_SERVER_URL = 'http://43.202.81.16:3000';
   try {
     console.log('=== 구역 상태 및 대피 경로 API 호출 ===');
     console.log('요청 URL:', `/get-escape-path`);
     console.log('요청 Body:', { current_location: currentLocation });
     
-    const response = await fetch(`/get-escape-path`, {
+    const response = await fetch(`${AI_SERVER_URL}/get-escape-path`, {
       method: 'POST',
       mode: 'cors',
       headers: {
